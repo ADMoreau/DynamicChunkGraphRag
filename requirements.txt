@@ -1,0 +1,14 @@
+--extra-index-url https://download.pytorch.org/whl/cpu
+--extra-index-url https://abetlen.github.io/llama-cpp-python/whl/cpu
+bm25s==0.3.12
+datasets==5.0.1
+llama_cpp_python==0.3.36
+matplotlib==3.11.2
+numpy==2.5.3
+PyYAML==6.0.3
+sentence-transformers==6.1.0
+spacy==3.8.16
+en_core_web_sm @ https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.8.0/en_core_web_sm-3.8.0-py3-none-any.whl
+torch==2.14.1+cpu
+transformers==5.18.0
+pytest==9.1.1
