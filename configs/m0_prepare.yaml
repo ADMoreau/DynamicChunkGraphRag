@@ -1,0 +1,14 @@
+# M0: download SQuAD, segment sentences, map answers to sentences, split questions.
+stage: prepare
+
+data:
+  hf_id: rajpurkar/squad
+  split: validation
+  data_dir: data
+  spacy_model: en_core_web_sm
+
+splits:
+  seed: 13
+  past_frac: 0.7      # by question; the rest are future questions
+  tuning_frac: 0.1    # share of past questions held out for tuning
+  pilot_size: 200     # fixed future slice for pilots

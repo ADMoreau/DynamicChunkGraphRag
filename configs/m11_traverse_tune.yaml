@@ -1,0 +1,61 @@
+# Tune graph traversal (traverse.py: Personalized PageRank from retrieved units and question
+# concepts) on 300 tuning questions, over the graph built from the build split only.
+# G-a<restart>-r<related edge weight>-q<question-concept weight>; +R adds the reranker.
+# Retrieval only (answer located, context tokens); no reader calls.
+stage: probe
+name: m11_traverse_tune
+results_dir: results
+
+data:
+  hf_id: rajpurkar/squad
+  split: validation
+  data_dir: data
+  spacy_model: en_core_web_sm
+
+splits:
+  seed: 13
+  past_frac: 0.7
+  tuning_frac: 0.1
+  pilot_size: 200
+
+eval:
+  questions: tuning
+  limit: 300             # of 740 tuning questions, to keep the grid under an hour
+  methods: [B3+R, C-ctx-k1-2-3, C-ctx-k1-2-3+R, G-a0.3-r0-q0, G-a0.3-r0-q0.5, G-a0.3-r0.3-q0, G-a0.3-r0.3-q0.5, G-a0.5-r0-q0, G-a0.5-r0-q0.5, G-a0.5-r0.3-q0, G-a0.5-r0.3-q0.5, G-a0.7-r0-q0, G-a0.7-r0-q0.5, G-a0.7-r0.3-q0, G-a0.7-r0.3-q0.5, G-a0.5-r0.3-q0.5+R]
+  budgets: [32, 64, 128, 256]
+
+retrieval:
+  dense_model: BAAI/bge-small-en-v1.5
+  model_cache: data/models/st
+  depth: 100
+  rrf_k: 60
+
+prune:                    # B2 only
+  model_path: data/models/provence   # naver/provence-reranker-debertav3-v1 (CC BY-NC-ND)
+  nltk_data: data/models/nltk
+  top_n: 20               # retrieved paragraphs Provence reranks and prunes per question
+  threshold: 0.1          # Provence default
+  batch_size: 4
+  n_threads: 8
+
+rerank:                   # "+R" methods
+  model: cross-encoder/ms-marco-MiniLM-L-6-v2   # 91 MB, Apache-2.0
+  model_cache: data/models/st
+  top_n: 30               # fused candidates re-scored per question
+  batch_size: 32
+  n_threads: 8
+
+reader:
+  backend: llama_cpp
+  model_path: data/models/qwen2.5-3b-instruct-q4_k_m.gguf
+  n_ctx: 2048
+  n_threads: 8
+  n_batch: 512
+  max_tokens: 32
+  seed: 0
+
+graph:
+  unit_k: [1, 2, 3]          # cracking k (sentence, clause, phrase): leanest index, no retrieval loss in m7 tuning
+  candidates: data/cache/merge/candidates_155b828f3e653a34.jsonl
+  verdicts: results/m10_judge_all_Qwen2.5-14B-Instruct.jsonl
+  path: data/cache/graph/m10_graph_tune.json   # traversal reads the built graph from here

@@ -1,0 +1,44 @@
+# M4: units vs scores. L (pieces from sentences gold for >= k past questions), B4 (past-question
+# prior, no splitting) and L+P (both). Prior settings were tuned on the tuning set (results/m4_tune.json).
+# Reader, retrieval, data and splits must match M1-M3 to compare with them.
+stage: eval
+name: m4_pilot
+results_dir: results
+
+data:
+  hf_id: rajpurkar/squad
+  split: validation
+  data_dir: data
+  spacy_model: en_core_web_sm
+
+splits:
+  seed: 13
+  past_frac: 0.7
+  tuning_frac: 0.1
+  pilot_size: 200
+
+eval:
+  questions: pilot
+  methods: [L-k1, B4, L-k2, L-k3, L+P]
+  budgets: [32, 64, 128, 256, 512, 1024]
+  compare_with: [results/m1_b1_pilot.jsonl, results/m2_pilot.jsonl, results/m3_oracle_pilot.jsonl]
+
+retrieval:
+  dense_model: BAAI/bge-small-en-v1.5
+  model_cache: data/models/st
+  depth: 100
+  rrf_k: 60
+
+prior:                    # tuned in results/m4_tune.json (evidence hit on the tuning set)
+  w: {B4: 0.25, L+P: 0.5}
+  tau: {B4: 0.85, L+P: 0.9}
+  lp_k: 1
+
+reader:
+  backend: llama_cpp
+  model_path: data/models/qwen2.5-3b-instruct-q4_k_m.gguf
+  n_ctx: 2048
+  n_threads: 8
+  n_batch: 512
+  max_tokens: 32
+  seed: 0

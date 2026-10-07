@@ -1,0 +1,56 @@
+# SyllabusQA held-out test: all future questions (never used for tuning), retrieval scoped to the
+# question's own syllabus; units learned from all past questions. Settings chosen on s5 (tuning).
+stage: probe
+name: s6_heldout
+results_dir: results
+
+data:
+  dataset: syllabusqa
+  raw_dir: data/raw/syllabusqa      # GitHub umass-ml4ed/SyllabusQA: dataset_split/*.json, syllabi text, meta.csv
+  chunk_sents: 5                    # sentences per chunk ("paragraph"); PDF layout is unreliable
+  hf_id: umass-ml4ed/SyllabusQA
+  split: all
+  data_dir: data
+  spacy_model: en_core_web_sm
+
+splits:
+  seed: 13
+  past_frac: 0.7
+  tuning_frac: 0.2       # ~266 tuning questions (0.1 would leave ~133)
+  pilot_size: 200
+
+eval:
+  questions: future
+  scope: document        # search only the question's own syllabus
+  methods: [B3+R, B1+R, E-k2+R, E-k3+R, C-ctxs-k1-2-3+R]
+  budgets: [32, 64, 128, 256]
+
+retrieval:
+  dense_model: BAAI/bge-small-en-v1.5
+  model_cache: data/models/st
+  depth: 20000           # rank every unit, so scoping to one syllabus never runs short
+  rrf_k: 60
+
+prune:                    # B2 only
+  model_path: data/models/provence   # naver/provence-reranker-debertav3-v1 (CC BY-NC-ND)
+  nltk_data: data/models/nltk
+  top_n: 20               # retrieved paragraphs Provence reranks and prunes per question
+  threshold: 0.1          # Provence default
+  batch_size: 4
+  n_threads: 8
+
+rerank:                   # "+R" methods
+  model: cross-encoder/ms-marco-MiniLM-L-6-v2   # 91 MB, Apache-2.0
+  model_cache: data/models/st
+  top_n: 30               # fused candidates re-scored per question
+  batch_size: 32
+  n_threads: 8
+
+reader:
+  backend: llama_cpp
+  model_path: data/models/qwen2.5-3b-instruct-q4_k_m.gguf
+  n_ctx: 2048
+  n_threads: 8
+  n_batch: 512
+  max_tokens: 32
+  seed: 0

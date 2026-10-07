@@ -1,0 +1,46 @@
+# M2: rival baselines B2 (paragraphs + Provence pruning) and B3 (sentences) on the pilot slice.
+# Reader, retrieval, data and splits must match m1_b1_pilot to compare with it.
+stage: eval
+name: m2_pilot
+results_dir: results
+
+data:
+  hf_id: rajpurkar/squad
+  split: validation
+  data_dir: data
+  spacy_model: en_core_web_sm
+
+splits:
+  seed: 13
+  past_frac: 0.7
+  tuning_frac: 0.1
+  pilot_size: 200
+
+eval:
+  questions: pilot
+  methods: [B2, B3]
+  budgets: [32, 64, 128, 256, 512, 1024]   # 32 and 64 added in M3 for Gate A
+  compare_with: [results/m1_b1_pilot.jsonl]
+
+retrieval:
+  dense_model: BAAI/bge-small-en-v1.5
+  model_cache: data/models/st
+  depth: 100
+  rrf_k: 60
+
+prune:                    # B2 only
+  model_path: data/models/provence   # naver/provence-reranker-debertav3-v1 (CC BY-NC-ND)
+  nltk_data: data/models/nltk
+  top_n: 20               # retrieved paragraphs Provence reranks and prunes per question
+  threshold: 0.1          # Provence default
+  batch_size: 4
+  n_threads: 8
+
+reader:
+  backend: llama_cpp
+  model_path: data/models/qwen2.5-3b-instruct-q4_k_m.gguf
+  n_ctx: 2048
+  n_threads: 8
+  n_batch: 512
+  max_tokens: 32
+  seed: 0

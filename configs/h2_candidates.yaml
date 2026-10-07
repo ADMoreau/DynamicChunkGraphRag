@@ -1,0 +1,40 @@
+# HotpotQA: candidate pairs for the Qwen 14B same / related / different judge (adjudicate.py).
+# No new reference labels: the judge was chosen on SQuAD (m9).
+stage: candidates
+name: h2_candidates
+results_dir: results
+
+data:
+  dataset: hotpotqa
+  hf_id: hotpotqa/hotpot_qa
+  split: validation
+  n_questions: 2000        # seeded sample of the 7,405 validation questions; their paragraphs form the corpus
+  sample_seed: 13
+  data_dir: data
+  spacy_model: en_core_web_sm
+
+splits:
+  seed: 13
+  past_frac: 0.7
+  tuning_frac: 0.1
+  pilot_size: 200
+
+retrieval:
+  dense_model: BAAI/bge-small-en-v1.5
+  model_cache: data/models/st
+  depth: 100
+  rrf_k: 60
+
+prune:                    # B2 only
+  model_path: data/models/provence   # naver/provence-reranker-debertav3-v1 (CC BY-NC-ND)
+  nltk_data: data/models/nltk
+  top_n: 20               # retrieved paragraphs Provence reranks and prunes per question
+  threshold: 0.1          # Provence default
+  batch_size: 4
+  n_threads: 8
+
+adjudicate:
+  floor: 0.8                 # embedding cosine floor for candidates (HippoRAG's synonym threshold)
+  fragment_k: [1, 1, 1]      # cracking k (sentence, clause, phrase) for fragment candidates
+  label_sample: 50           # small sample to eyeball; no labelling planned
+  seed: 0
